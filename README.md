@@ -5,16 +5,19 @@
 # 1. Overview
 
 Platform: Agent on Windows 10/11 (x64)
+
 Technologies and Tools: Python 3.11+, FastAPI, SQLite, SQLAlchemy, Uvicorn, pywin32/psutil
+
 Assessment focus: Systems and Network Programming
 
 # 2. System architecture
 
-MÁY CỦA TRẺ (Windows 10/11)                           MÁY CHỦ (LAN hoặc VPS lab)
+```text
+      MÁY CỦA TRẺ (Windows 10/11)                         MÁY CHỦ (LAN hoặc VPS lab)
 +------------------------------------+               +----------------------------------+
 | OGK-Agent (Python)                 |               | OGK-Server (FastAPI)             |
-| +--------------------------------+ |  HTTPS        | +------------------------------+ |
-| | Windows Service (SYSTEM)       | |  TLS1.2+      | | /auth  /enroll  /policy      | |
+| +--------------------------------+ |     HTTPS     | +------------------------------+ |
+| | Windows Service (SYSTEM)       | |    TLS1.2+    | | /auth  /enroll  /policy      | |
 | | - Policy Enforcer              | | <-----------> | | /events  /commands           | |
 | | - Screen-time Counter          | |   heartbeat   | | /reports  /audit             | |
 | | - App Controller               | |      60s      | +------------------------------+ |
@@ -31,4 +34,4 @@ MÁY CỦA TRẺ (Windows 10/11)                           MÁY CHỦ (LAN hoặ
 | +--------------------------------+ |               Cấu hình từ xa, mọi thiết bị
 +------------------------------------+
   ^ named pipe / localhost
-
+```
