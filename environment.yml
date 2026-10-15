@@ -1,0 +1,15 @@
+name: computer_network
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.11
+  - pip
+  - pip:
+      - fastapi>=0.100.0
+      - uvicorn[standard]>=0.22.0
+      - websockets>=11.0
+      - requests>=2.31.0
+      - sqlalchemy>=2.0.0
+      - psutil>=5.9.0
+      - pywin32>=306; sys_platform == 'win32'

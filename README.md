@@ -8,7 +8,7 @@ Platform: Agent on Windows 10/11 (x64)
 
 Technologies and Tools: Python 3.11+, FastAPI, SQLite, SQLAlchemy, Uvicorn, pywin32/psutil
 
-Assessment focus: Systems and Network Programming
+Focus: Systems and Network Programming
 
 # 2. System architecture
 
@@ -22,8 +22,8 @@ Assessment focus: Systems and Network Programming
 | | - Screen-time Counter          | |   heartbeat   | | /reports  /audit             | |
 | | - App Controller               | |      60s      | +------------------------------+ |
 | | - DNS Proxy 127.0.0.1:53       | |               | | SQLite + SQLAlchemy          | |
-| | - Local cache (SQLite)         | |  WebSocket    | | (policy, event, audit)       | |
-| +--------------------------------+ |  lệnh gấp     | +------------------------------+ |
+| | - Local cache (SQLite)         | |   WebSocket   | | (policy, event, audit)       | |
+| +--------------------------------+ |   lệnh gấp    | +------------------------------+ |
 |                 ^                  |               +----------------------------------+
 |                 |                  |                                | HTTPS
 | +--------------------------------+ |                                v
@@ -35,3 +35,26 @@ Assessment focus: Systems and Network Programming
 +------------------------------------+
   ^ named pipe / localhost
 ```
+
+# 3. Installation
+
+Make sure you have [https://www.anaconda.com/download/success?reg=skipped-miniconda](Conda) or [https://www.anaconda.com/download/success?reg=skipped-miniconda](Miniconda) installed on your system. Then, stay at the project directory and follow these steps to set up the project:
+
+- 1. Create a virtual environment and activate it:
+  
+  ```bash
+  conda env create -f environment.yml
+  ```
+
+  You can also check if the environment is created successfully by running:
+
+  ```bash
+  conda env list
+  ```
+
+  If you see `computer_network` in the list, it means the environment is created successfully.
+- 2. Activate the environment:
+
+  ```bash
+  conda activate computer_network
+  ```
