@@ -38,7 +38,7 @@ Focus: Systems and Network Programming
 
 # 3. Installation
 
-Make sure you have [https://www.anaconda.com/download/success?reg=skipped-miniconda](Conda) or [https://www.anaconda.com/download/success?reg=skipped-miniconda](Miniconda) installed on your system. Then, stay at the project directory and follow these steps to set up the project:
+Make sure you have [Conda](https://www.anaconda.com/download/success?reg=skipped-miniconda) or [Miniconda](https://www.anaconda.com/download/success?reg=skipped-miniconda) installed on your system. Then, stay at the project directory and follow these steps to set up the project:
 
 - 1. Create a virtual environment and activate it:
   
