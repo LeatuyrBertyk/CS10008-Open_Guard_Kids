@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}OGK Parental Control{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    {% if current_user %}
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="brand-icon">🛡️</span>
+            <span class="brand-text">OGK Parental Control</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/dashboard">🏠 Trang chủ</a></li>
+            <li><a href="/requests">📬 Yêu cầu</a></li>
+        </ul>
+        <div class="nav-user">
+            <span>👤 {{ current_user.username }}</span>
+            <a href="#" id="logout-btn" class="btn-logout">Đăng xuất</a>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <p>OGK Parental Control v0.1.0 - Đồ án Mạng máy tính</p>
+        <p class="principle">Minh bạch · Tối thiểu · Có lý do · Có tiếng nói</p>
+    </footer>
+
+    <script src="/static/app.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

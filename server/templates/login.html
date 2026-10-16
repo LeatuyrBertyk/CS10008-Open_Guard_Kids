@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Đăng nhập - OGK{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <h1>🛡️ OGK Parental Control</h1>
+        <p class="subtitle">Công cụ đồng hành, không phải phần mềm theo dõi lén</p>
+
+        <div id="error-msg" class="error-msg" style="display:none;"></div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">Tên đăng nhập</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password">Mật khẩu</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn-primary">Đăng nhập</button>
+        </form>
+
+        <div class="login-hint">
+            <p><strong>Tài khoản demo:</strong> admin / admin123</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new URLSearchParams();
+    formData.append("username", document.getElementById("username").value);
+    formData.append("password", document.getElementById("password").value);
+
+    try {
+        const resp = await fetch("/api/auth/login", {
+            method: "POST",
+            body: formData,
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        });
+        if (!resp.ok) {
+            const err = await resp.json();
+            document.getElementById("error-msg").textContent = err.detail || "Đăng nhập thất bại";
+            document.getElementById("error-msg").style.display = "block";
+            return;
+        }
+        const data = await resp.json();
+        localStorage.setItem("ogk_token", data.access_token);
+        window.location.href = "/dashboard";
+    } catch (err) {
+        document.getElementById("error-msg").textContent = "Lỗi kết nối: " + err.message;
+        document.getElementById("error-msg").style.display = "block";
+    }
+});
+</script>
+{% endblock %}

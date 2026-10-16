@@ -1,0 +1,90 @@
+# ==========================================
+# Python
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ==========================================
+# Virtual environments
+# ==========================================
+venv/
+env/
+ENV/
+.venv/
+.env/
+.conda/
+
+# ==========================================
+# IDE
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# Database
+# ==========================================
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+server/ogk.db
+agent/local_cache.db
+
+# ==========================================
+# Logs
+# ==========================================
+*.log
+logs/
+agent/logs/
+server/logs/
+
+# ==========================================
+# Certificates (TUYỆT ĐỐI KHÔNG commit cert thật)
+# ==========================================
+*.pem
+*.key
+*.crt
+certs/
+
+# ==========================================
+# Runtime files
+# ==========================================
+agent/config.json
+agent/tray_state.json
+*.pid
+*.tmp
+
+# ==========================================
+# Test artifacts
+# ==========================================
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+.tox/
+.mypy_cache/
+.ruff_cache/

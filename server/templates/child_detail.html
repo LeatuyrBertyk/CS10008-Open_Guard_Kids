@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Chi tiết trẻ - OGK{% endblock %}
+
+{% block content %}
+<div class="child-detail">
+    <a href="/dashboard" class="back-link">← Quay lại</a>
+    <h1 id="child-name">Đang tải...</h1>
+
+    <div class="info-grid">
+        <div class="info-card">
+            <h3>⏱️ Tổng thời gian (7 ngày)</h3>
+            <p class="big-number" id="total-minutes">--</p>
+            <p class="unit">phút</p>
+        </div>
+        <div class="info-card">
+            <h3>🚫 Lần bị chặn (7 ngày)</h3>
+            <p class="big-number" id="blocked-count">--</p>
+            <p class="unit">lần</p>
+        </div>
+        <div class="info-card">
+            <h3>🖥️ Thiết bị</h3>
+            <p id="device-info">--</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <h2>📱 Top ứng dụng</h2>
+            <table class="data-table" id="apps-table">
+                <thead><tr><th>Tên app</th><th>Phút</th><th>Lượt</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="col">
+            <h2>🌐 Top website</h2>
+            <table class="data-table" id="domains-table">
+                <thead><tr><th>Domain</th><th>Truy cập</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="row">
+        <h2>📜 Lịch sử sự kiện (gần nhất)</h2>
+        <div class="events-list" id="events-list"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const token = localStorage.getItem("ogk_token");
+if (!token) window.location.href = "/login";
+
+const childId = {{ child_id }};
+
+async function loadChildDetail() {
+    // Summary
+    const summaryResp = await fetch(`/api/reports/summary?child_id=${childId}&days=7`, {
+        headers: {"Authorization": "Bearer " + token},
+    });
+    if (summaryResp.status === 401) { localStorage.removeItem("ogk_token"); window.location.href = "/login"; return; }
+    const summary = await summaryResp.json();
+    document.getElementById("child-name").textContent = "👶 " + summary.child_name;
+    document.getElementById("total-minutes").textContent = Math.round(summary.total_minutes);
+    document.getElementById("blocked-count").textContent = summary.blocked_count;
+    if (summary.device) {
+        document.getElementById("device-info").innerHTML =
+            `<strong>${summary.device.hostname}</strong><br>
+             ${summary.device.is_online ? '🟢 Online' : '⚪ Offline'}<br>
+             Lần cuối: ${summary.device.last_seen ? new Date(summary.device.last_seen).toLocaleString('vi-VN') : '?'}`;
+    }
+
+    // Apps
+    const appsTbody = document.querySelector("#apps-table tbody");
+    appsTbody.innerHTML = summary.top_apps.length === 0
+        ? '<tr><td colspan="3">Chưa có dữ liệu</td></tr>'
+        : summary.top_apps.map(a => `<tr><td>${a.name || '?'}</td><td>${a.minutes || 0}</td><td>${a.count || 0}</td></tr>`).join("");
+
+    // Domains
+    const domTbody = document.querySelector("#domains-table tbody");
+    domTbody.innerHTML = summary.top_domains.length === 0
+        ? '<tr><td colspan="2">Chưa có dữ liệu</td></tr>'
+        : summary.top_domains.map(d => `<tr><td>${d.name || '?'}</td><td>${d.visits || 0}</td></tr>`).join("");
+
+    // Events
+    if (summary.device) {
+        const evResp = await fetch(`/api/events?device_id=${summary.device.id}&limit=50&days=7`, {
+            headers: {"Authorization": "Bearer " + token},
+        });
+        if (evResp.ok) {
+            const events = await evResp.json();
+            const evList = document.getElementById("events-list");
+            if (events.length === 0) {
+                evList.innerHTML = "<p>Chưa có sự kiện nào.</p>";
+            } else {
+                evList.innerHTML = events.map(e => {
+                    const icon = {
+                        'app_start': '▶️', 'app_end': '⏹️', 'app_blocked': '🚫',
+                        'web_visit': '🌐', 'web_blocked': '🚫', 'lock_screen': '🔒',
+                    }[e.event_type] || '📌';
+                    const color = e.event_type.includes('blocked') ? 'event-blocked' : '';
+                    return `<div class="event-row ${color}">
+                        <span class="event-icon">${icon}</span>
+                        <span class="event-type">${e.event_type}</span>
+                        <span class="event-name">${e.app_name || e.domain || ''}</span>
+                        <span class="event-time">${new Date(e.timestamp).toLocaleString('vi-VN')}</span>
+                    </div>`;
+                }).join("");
+            }
+        }
+    }
+}
+
+loadChildDetail();
+</script>
+{% endblock %}

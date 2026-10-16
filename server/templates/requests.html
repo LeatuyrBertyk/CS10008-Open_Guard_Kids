@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Yêu cầu - OGK{% endblock %}
+
+{% block content %}
+<div class="requests-page">
+    <h1>📬 Yêu cầu từ con</h1>
+    <p class="muted">Theo nguyên tắc NT3: mọi yêu cầu phải được ghi nhận và có phản hồi.</p>
+
+    <div class="filter-tabs">
+        <button class="tab-btn active" data-status="pending">⏳ Chờ phản hồi</button>
+        <button class="tab-btn" data-status="approved">✅ Đã duyệt</button>
+        <button class="tab-btn" data-status="rejected">❌ Đã từ chối</button>
+        <button class="tab-btn" data-status="all">📋 Tất cả</button>
+    </div>
+
+    <div id="loading">Đang tải...</div>
+    <div id="requests-list"></div>
+</div>
+
+<!-- Modal phản hồi -->
+<div id="respond-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h2>Phản hồi yêu cầu</h2>
+        <p id="modal-reason"></p>
+        <form id="respond-form">
+            <input type="hidden" id="modal-request-id">
+            <label><input type="radio" name="decision" value="approve" checked> ✅ Duyệt</label>
+            <label><input type="radio" name="decision" value="reject"> ❌ Từ chối</label>
+            <label>Cộng thêm (phút): <input type="number" id="grant-minutes" min="0" max="120" value="15"></label>
+            <label>Lời nhắn cho con: <textarea id="response-msg" required></textarea></label>
+            <div class="modal-actions">
+                <button type="button" id="modal-cancel" class="btn-secondary">Hủy</button>
+                <button type="submit" class="btn-primary">Gửi phản hồi</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const token = localStorage.getItem("ogk_token");
+if (!token) window.location.href = "/login";
+
+let currentStatus = "pending";
+
+async function loadRequests() {
+    const resp = await fetch(`/api/requests?status=${currentStatus}`, {
+        headers: {"Authorization": "Bearer " + token},
+    });
+    if (resp.status === 401) { localStorage.removeItem("ogk_token"); window.location.href = "/login"; return; }
+    const data = await resp.json();
+
+    document.getElementById("loading").style.display = "none";
+    const list = document.getElementById("requests-list");
+    if (data.length === 0) {
+        list.innerHTML = "<p class='empty-state'>Không có yêu cầu nào.</p>";
+        return;
+    }
+
+    list.innerHTML = data.map(r => {
+        const typeLabel = r.request_type === "extra_time" ? "⏰ Xin thêm giờ" : "🚫 Báo chặn nhầm";
+        const statusBadge = {
+            'pending': '<span class="badge badge-pending">⏳ Chờ</span>',
+            'approved': '<span class="badge badge-approved">✅ Duyệt</span>',
+            'rejected': '<span class="badge badge-rejected">❌ Từ chối</span>',
+        }[r.status] || '';
+
+        return `
+        <div class="request-card">
+            <div class="request-header">
+                <strong>${typeLabel}</strong> - ${statusBadge}
+                <span class="request-time">${new Date(r.created_at).toLocaleString('vi-VN')}</span>
+            </div>
+            <div class="request-body">
+                <p><strong>👶 ${escapeHtml(r.child_name)}</strong> trên <em>${escapeHtml(r.device_hostname)}</em></p>
+                <p class="request-reason">"${escapeHtml(r.reason)}"</p>
+                ${r.request_type === 'extra_time' ? `<p>Xin thêm: <strong>${r.extra_minutes}</strong> phút</p>` : ''}
+                ${r.context ? `<p>Context: ${JSON.stringify(r.context)}</p>` : ''}
+                ${r.parent_response ? `
+                    <div class="request-response">
+                        <p><strong>Phản hồi của bạn:</strong> ${escapeHtml(r.parent_response)}</p>
+                        ${r.grant_minutes > 0 ? `<p>Cộng thêm: <strong>${r.grant_minutes}</strong> phút</p>` : ''}
+                    </div>
+                ` : ''}
+            </div>
+            ${r.status === 'pending' ? `
+                <button class="btn-primary respond-btn" data-id="${r.id}" data-reason="${escapeHtml(r.reason)}">💬 Phản hồi</button>
+            ` : ''}
+        </div>`;
+    }).join("");
+
+    document.querySelectorAll(".respond-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.getElementById("modal-request-id").value = btn.dataset.id;
+            document.getElementById("modal-reason").textContent = "Lý do: " + btn.dataset.reason;
+            document.getElementById("respond-modal").style.display = "flex";
+        });
+    });
+}
+
+function escapeHtml(s) {
+    if (s == null) return "";
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentStatus = btn.dataset.status;
+        document.getElementById("loading").style.display = "block";
+        document.getElementById("requests-list").innerHTML = "";
+        loadRequests();
+    });
+});
+
+document.getElementById("modal-cancel").addEventListener("click", () => {
+    document.getElementById("respond-modal").style.display = "none";
+});
+
+document.getElementById("respond-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const id = document.getElementById("modal-request-id").value;
+    const decision = document.querySelector('input[name="decision"]:checked').value;
+    const msg = document.getElementById("response-msg").value;
+    const grant = parseInt(document.getElementById("grant-minutes").value || "0");
+
+    const resp = await fetch(`/api/requests/${id}/respond`, {
+        method: "POST",
+        headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            approved: decision === "approve",
+            response_message: msg,
+            grant_minutes: grant,
+        }),
+    });
+
+    if (resp.ok) {
+        document.getElementById("respond-modal").style.display = "none";
+        document.getElementById("response-msg").value = "";
+        loadRequests();
+    } else {
+        const err = await resp.json();
+        alert("Lỗi: " + (err.detail || "Không rõ"));
+    }
+});
+
+loadRequests();
+</script>
+{% endblock %}

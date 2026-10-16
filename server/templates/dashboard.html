@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - OGK{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h1>📊 Tổng quan các thiết bị</h1>
+
+    <div id="loading" class="loading">Đang tải dữ liệu...</div>
+
+    <div id="devices-list" class="device-grid" style="display:none;">
+        <!-- Cards thiết bị sẽ được render bằng JS -->
+    </div>
+
+    <div id="empty-state" class="empty-state" style="display:none;">
+        <p>Chưa có thiết bị nào được đăng ký.</p>
+        <p>Đăng ký máy đầu tiên bằng mã: <code>DEMO2024</code></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Tự động redirect nếu chưa có token
+const token = localStorage.getItem("ogk_token");
+if (!token) window.location.href = "/login";
+
+async function loadDashboard() {
+    try {
+        const resp = await fetch("/api/reports/dashboard", {
+            headers: {"Authorization": "Bearer " + token},
+        });
+        if (resp.status === 401) {
+            localStorage.removeItem("ogk_token");
+            window.location.href = "/login";
+            return;
+        }
+        const data = await resp.json();
+        document.getElementById("loading").style.display = "none";
+
+        if (!data || data.length === 0) {
+            document.getElementById("empty-state").style.display = "block";
+            return;
+        }
+
+        const list = document.getElementById("devices-list");
+        list.style.display = "grid";
+        list.innerHTML = data.map(d => `
+            <div class="device-card ${d.is_online ? 'online' : 'offline'}">
+                <div class="device-header">
+                    <h3>👶 ${escapeHtml(d.child_name)}</h3>
+                    <span class="status-badge ${d.is_online ? 'badge-online' : 'badge-offline'}">
+                        ${d.is_online ? '🟢 Online' : '⚪ Offline'}
+                    </span>
+                </div>
+                <div class="device-body">
+                    <p><strong>🖥️ Máy:</strong> ${escapeHtml(d.device_hostname || 'Chưa đăng ký')}</p>
+                    <p><strong>⏱️ Hôm nay:</strong> ${d.usage_today} phút</p>
+                    <p><strong>🕐 Lần cuối:</strong> ${d.last_seen ? new Date(d.last_seen).toLocaleString('vi-VN') : 'Chưa rõ'}</p>
+                </div>
+                <div class="device-actions">
+                    ${d.device_id ? `
+                        <a href="/child/${d.child_id}" class="btn-secondary">📊 Chi tiết</a>
+                        <a href="/child/${d.child_id}/policy" class="btn-secondary">⚙️ Luật</a>
+                    ` : ''}
+                </div>
+            </div>
+        `).join("");
+    } catch (err) {
+        document.getElementById("loading").textContent = "Lỗi: " + err.message;
+    }
+}
+
+function escapeHtml(s) {
+    if (s == null) return "";
+    return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+document.getElementById("logout-btn").addEventListener("click", (e) => {
+    e.preventDefault();
+    localStorage.removeItem("ogk_token");
+    window.location.href = "/login";
+});
+
+// Set tên user lên nav
+(async () => {
+    try {
+        const resp = await fetch("/api/auth/me", {
+            headers: {"Authorization": "Bearer " + token},
+        });
+        if (resp.ok) {
+            const u = await resp.json();
+            document.querySelector(".nav-user span").textContent = "👤 " + u.username;
+        }
+    } catch (e) {}
+})();
+
+loadDashboard();
+// Auto refresh mỗi 30s
+setInterval(loadDashboard, 30000);
+</script>
+{% endblock %}

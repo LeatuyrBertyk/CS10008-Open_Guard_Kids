@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Sửa luật - OGK{% endblock %}
+
+{% block content %}
+<div class="policy-edit">
+    <a href="/dashboard" class="back-link">← Quay lại</a>
+    <h1>⚙️ Cài đặt luật</h1>
+    <p class="muted">Mọi thay đổi sẽ được ghi nhận vào nhật ký kiểm toán. Con có thể xem nhật ký này.</p>
+
+    <div id="loading">Đang tải policy...</div>
+
+    <form id="policy-form" style="display:none;">
+        <div class="form-section">
+            <h2>⏱️ Giới hạn thời gian</h2>
+            <label>Số phút tối đa mỗi ngày:
+                <input type="number" id="max-minutes" min="0" max="1440" value="120">
+            </label>
+        </div>
+
+        <div class="form-section">
+            <h2>🌙 Giờ đi ngủ (khóa máy hoàn toàn)</h2>
+            <div class="form-row">
+                <label>Từ: <input type="time" id="bedtime-start" value="22:00"></label>
+                <label>Đến: <input type="time" id="bedtime-end" value="06:00"></label>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>🚫 Ứng dụng bị chặn</h2>
+            <p class="muted">Mỗi tên 1 dòng, ví dụ: <code>chrome</code>, <code>steam</code></p>
+            <textarea id="blocked-apps" rows="5" placeholder="steam&#10;discord"></textarea>
+        </div>
+
+        <div class="form-section">
+            <h2>🌐 Website bị chặn</h2>
+            <p class="muted">Mỗi domain 1 dòng, ví dụ: <code>facebook.com</code></p>
+            <textarea id="blocked-domains" rows="5" placeholder="facebook.com&#10;tiktok.com"></textarea>
+        </div>
+
+        <div class="form-section">
+            <h2>✅ Website được phép (ngoài danh sách mặc định)</h2>
+            <textarea id="allowed-domains" rows="3" placeholder="vd: wikipedia.org"></textarea>
+        </div>
+
+        <div class="form-section">
+            <h2>📅 Lịch chặn theo giờ</h2>
+            <p class="muted">Mỗi dòng: <code>thứ:HH:MM-HH:MM</code>. Ví dụ: <code>mon:19:00-21:00</code> = Thứ 2 từ 19h đến 21h.</p>
+            <textarea id="schedule" rows="7" placeholder="mon:19:00-21:00&#10;tue:19:00-21:00&#10;wed:19:00-21:00&#10;thu:19:00-21:00&#10;fri:19:00-22:00&#10;sat:14:00-22:00&#10;sun:14:00-22:00"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary">💾 Lưu thay đổi</button>
+        <span id="save-status" class="save-status"></span>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const token = localStorage.getItem("ogk_token");
+if (!token) window.location.href = "/login";
+const childId = {{ child_id }};
+
+let deviceId = null;
+
+async function loadPolicy() {
+    // Lấy summary để biết device_id
+    const sResp = await fetch(`/api/reports/summary?child_id=${childId}&days=1`, {
+        headers: {"Authorization": "Bearer " + token},
+    });
+    if (!sResp.ok) { document.getElementById("loading").textContent = "Không tìm thấy thiết bị"; return; }
+    const summary = await sResp.json();
+    if (!summary.device) {
+        document.getElementById("loading").textContent = "Chưa có thiết bị. Cài Agent trước.";
+        return;
+    }
+    deviceId = summary.device.id;
+
+    const pResp = await fetch(`/api/devices/${deviceId}/policy`, {
+        headers: {"Authorization": "Bearer " + token},
+    });
+    if (!pResp.ok) { document.getElementById("loading").textContent = "Lỗi tải policy"; return; }
+    const p = await pResp.json();
+
+    document.getElementById("max-minutes").value = p.max_minutes_per_day;
+    document.getElementById("bedtime-start").value = p.bedtime_start || "";
+    document.getElementById("bedtime-end").value = p.bedtime_end || "";
+    document.getElementById("blocked-apps").value = (p.blocked_apps || []).join("\n");
+    document.getElementById("blocked-domains").value = (p.blocked_domains || []).join("\n");
+    document.getElementById("allowed-domains").value = (p.allowed_domains || []).join("\n");
+
+    // schedule là dict, cần chuyển thành text
+    const schLines = [];
+    if (p.schedule) {
+        for (const [day, ranges] of Object.entries(p.schedule)) {
+            for (const r of ranges) {
+                schLines.push(`${day}:${r.start}-${r.end}`);
+            }
+        }
+    }
+    document.getElementById("schedule").value = schLines.join("\n");
+
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("policy-form").style.display = "block";
+}
+
+function parseSchedule(text) {
+    const schedule = {};
+    const lines = text.split("\n").map(l => l.trim()).filter(l => l);
+    for (const line of lines) {
+        const m = line.match(/^([a-z]{3}):(\d{2}:\d{2})-(\d{2}:\d{2})$/i);
+        if (!m) continue;
+        const day = m[1].toLowerCase();
+        if (!schedule[day]) schedule[day] = [];
+        schedule[day].push({start: m[2], end: m[3]});
+    }
+    return schedule;
+}
+
+document.getElementById("policy-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const payload = {
+        max_minutes_per_day: parseInt(document.getElementById("max-minutes").value),
+        bedtime_start: document.getElementById("bedtime-start").value || null,
+        bedtime_end: document.getElementById("bedtime-end").value || null,
+        blocked_apps: document.getElementById("blocked-apps").value.split("\n").map(s => s.trim()).filter(s => s),
+        blocked_domains: document.getElementById("blocked-domains").value.split("\n").map(s => s.trim()).filter(s => s),
+        allowed_domains: document.getElementById("allowed-domains").value.split("\n").map(s => s.trim()).filter(s => s),
+        schedule: parseSchedule(document.getElementById("schedule").value),
+    };
+
+    const resp = await fetch(`/api/policies/${deviceId}`, {
+        method: "PUT",
+        headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    const status = document.getElementById("save-status");
+    if (resp.ok) {
+        status.textContent = "✅ Đã lưu! Agent sẽ nhận luật mới trong vòng 60 giây.";
+        status.className = "save-status success";
+    } else {
+        const err = await resp.json();
+        status.textContent = "❌ Lỗi: " + (err.detail || "Không rõ");
+        status.className = "save-status error";
+    }
+    setTimeout(() => status.textContent = "", 5000);
+});
+
+loadPolicy();
+</script>
+{% endblock %}
