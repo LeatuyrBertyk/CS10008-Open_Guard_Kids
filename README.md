@@ -1,6 +1,6 @@
 # CS10008-Parental_Control_Software
 
-*Computer Network course project*
+_Computer Network course project_
 
 # 1. Overview
 
@@ -40,8 +40,8 @@ Focus: Systems and Network Programming
 
 Make sure you have [Conda](https://www.anaconda.com/download/success?reg=skipped-miniconda) or [Miniconda](https://www.anaconda.com/download/success?reg=skipped-miniconda) installed on your system. Then, stay at the project directory and follow these steps to set up the project:
 
-- 1. Create a virtual environment and activate it:
-  
+- Create a virtual environment:
+
   ```bash
   conda env create -f environment.yml
   ```
@@ -53,7 +53,8 @@ Make sure you have [Conda](https://www.anaconda.com/download/success?reg=skipped
   ```
 
   If you see `computer_network` in the list, it means the environment is created successfully.
-- 2. Activate the environment:
+
+- Activate the environment:
 
   ```bash
   conda activate computer_network
