@@ -1,4 +1,4 @@
-# OGK Parental Control
+# OpenGuard Kids
 
 **Công cụ đồng hành, không phải phần mềm theo dõi lén**
 
