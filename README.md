@@ -1,4 +1,4 @@
-# CS10008-Parental_Control_Software
+# CS10008-OpenGuard Kids
 
 _Computer Network course project_
 
